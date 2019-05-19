@@ -5,11 +5,14 @@ verify_ssl = true
 
 [dev-packages]
 pylint = "*"
+rope = "*"
 
 [packages]
 numpy = "*"
 matplotlib = "*"
 jupyter = "*"
+scipy = "*"
+pandas = "*"
 
 [requires]
 python_version = "3.7"
