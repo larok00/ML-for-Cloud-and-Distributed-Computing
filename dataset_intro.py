@@ -1,8 +1,8 @@
 #%% [markdown]
-# #Dataset Introduction
+# # Dataset Introduction
 
 #%% [markdown]
-# ##Imports
+# ## Imports
 
 #%%
 import numpy as np
@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import scipy.signal as ss
 
 #%% [markdown]
-# ##Initializations
+# ## Initializations
 
 #%%
 np.random.seed(19)
@@ -42,7 +42,7 @@ no_of_machines = cpu_data.shape[0]
 no_of_timestamps = cpu_data.shape[1]
 
 #%% [markdown]
-# We takea subsample of the machines. The dataset in its entirety is extremely
+# We take a subsample of the machines. The dataset in its entirety is extremely
 # large so for basic exploratory analysis it would burden us with too much
 # computing workload without providing any further insight that is of
 # significance.
@@ -82,7 +82,7 @@ plt.title('MEM data')
 plt.show()
 
 #%% [markdown]
-# ##Exploratory Analysis
+# ## Exploratory Analysis
 
 #%%
 def ccf(x, y, no_lag=False):
@@ -108,7 +108,7 @@ def ccf(x, y, no_lag=False):
     return correlation / (np.std(y) * np.std(x) * len(y))
 
 #%% [markdown]
-# ###Spatial Correlation
+# ### Spatial Correlation
 
 #%% [markdown]
 # Calculate the spatial correlation between every possible pair of machines
@@ -155,7 +155,7 @@ for correlations in spatial_correlations:
     i += 1
 
 #%% [markdown]
-# ###Temporal Correlation
+# ### Temporal Correlation
 
 #%% [markdown]
 # Calculate the temporal correlation of each time series with itself, at every
