@@ -145,8 +145,9 @@ for correlations in spatial_correlations:
     print(
         correlations,
         'Average:', np.average(spatial_correlations[correlations]))
+    print(correlations, 'RMS:', np.sqrt(np.mean(abs_correlations)))
 
-    plt.subplot(len(1, spatial_correlations), i).hist(
+    plt.subplot(1, len(spatial_correlations), i).hist(
         spatial_correlations[correlations],
         bins=[n/10 for n in range(-10, 11)])
     plt.title(correlations + ' Spatial Correlations')
@@ -239,7 +240,10 @@ plt.show()
 for correlations in temporal_correlations:
     avg_correlation = np.average(temporal_correlations[correlations], axis=0)
     print(correlations, 'Average Correlation:', np.average(avg_correlation))
+    print(correlations, 'RMS Correlation:',
+          np.sqrt(np.mean(avg_correlation**2)))
     plt.hist(avg_correlation, bins=[n/10 for n in range(-10, 11)])
+    plt.title(correlations + ' Temporal Correlations')
     plt.show()
 
 #%%
