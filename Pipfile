@@ -13,6 +13,7 @@ matplotlib = "*"
 jupyter = "*"
 scipy = "*"
 pandas = "*"
+sklearn = "*"
 
 [requires]
 python_version = "3.7"

@@ -101,11 +101,13 @@ def ccf(x, y, no_lag=False):
         A float with 0 time-shift or a list of floats that represent the
         cross-correlation for every possible time-shift.
     '''
-    correlation = (
-        np.correlate(y - np.mean(y), x - np.mean(x))
-        if no_lag else ss.correlate(y - np.mean(y), x - np.mean(x)))
-    
-    return correlation / (np.std(y) * np.std(x) * len(y))
+    if np.std(y) * np.std(x) == 0:
+        return 0
+    else:
+        correlation = (
+            np.correlate(y - np.mean(y), x - np.mean(x))
+            if no_lag else ss.correlate(y - np.mean(y), x - np.mean(x)))
+        return correlation / (np.std(y) * np.std(x) * len(y))
 
 #%% [markdown]
 # ### Spatial Correlation
@@ -133,33 +135,62 @@ for i in range(spatial_sample_size):
                                                  no_lag=True)
             k += 1
     i += 1
+
 #%% [markdown]
 # Have a look at how high the spatial correlation values seem to be.
 
 #%%
 i = 1
 for correlations in spatial_correlations:
-    abs_correlations = np.abs(spatial_correlations[correlations])
-    print(correlations, 'Absolute Maximum:', np.amax(abs_correlations))
-    print(correlations, 'Absolute Minimum:', np.amin(abs_correlations))
-    print(
-        correlations,
-        'Average:', np.average(spatial_correlations[correlations]))
+    corr = spatial_correlations[correlations]
+    abs_correlations = np.abs(corr)
+    print(correlations, 'Maximum:', np.amax(corr))
+    print(correlations, 'Minimum:', np.amin(corr))
+    print(correlations, 'Average:', np.average(corr))
     print(correlations, 'RMS:', np.sqrt(np.mean(abs_correlations)))
+    values, base = np.histogram(corr, bins=[n/100 for n in range(-85, 99)])
 
-    plt.subplot(1, len(spatial_correlations), i).hist(
-        spatial_correlations[correlations],
-        bins=[n/10 for n in range(-10, 11)])
+    ax0 = plt.subplot(len(spatial_correlations), 1, i)
+    ax0.plot(base[:-1], values)
+    ax1 = ax0.twinx()  # instantiate a second axes that shares the same x-axis
+    ax1.plot(base[:-1], np.cumsum(values), '-',
+             2*[np.average(corr)], [0, 40000], '--')
+    plt.xticks([n/4 for n in range (-2, 4)])
     plt.title(correlations + ' Spatial Correlations')
-    plt.show()
     i += 1
+
+plt.tight_layout()
+plt.show()
+
+#%%
+i = 1
+for correlations in spatial_correlations:
+    corr = spatial_correlations[correlations]
+    abs_correlations = np.abs(corr)
+    print(correlations, 'Maximum:', np.amax(corr))
+    print(correlations, 'Minimum:', np.amin(corr))
+    print(correlations, 'Average:', np.average(corr))
+    print(correlations, 'RMS:', np.sqrt(np.mean(abs_correlations)))
+    values, base = np.histogram(corr, bins=[n/100 for n in range(-85, 101)])
+
+    ax0 = plt.subplot(len(spatial_correlations), 1, i)
+    ax0.plot(base[:-1], values)
+    ax1 = ax0.twinx()  # instantiate a second axes that shares the same x-axis
+    ax1.plot(base[:-1], np.cumsum(values), '-',
+             2*[np.average(corr)], [0, 40000], '--')
+    plt.xticks([n/4 for n in range (-2, 6)])
+    plt.title(correlations + ' Spatial Correlations')
+    i += 1
+
+plt.tight_layout()
+plt.show()
 
 #%% [markdown]
 # ### Temporal Correlation
 
 #%% [markdown]
-# Calculate the temporal correlation of each time series with itself, at every
-# possible time-shift.
+# Calculate the temporal correlation of each time series with itself,
+# at every possible time-shift.
 
 #%%
 for i in range(temporal_sample_size):
@@ -245,5 +276,22 @@ for correlations in temporal_correlations:
     plt.hist(avg_correlation, bins=[n/10 for n in range(-10, 11)])
     plt.title(correlations + ' Temporal Correlations')
     plt.show()
+
+#%%
+for correlations in temporal_correlations:
+    avg_correlation = np.average(temporal_correlations[correlations], axis=0)
+    daily_timestamps = (
+        [zero_shift_timestamp + n * days_to_minutes // 5 for n in range(-1, 2)])
+    daily_timestamps = daily_timestamps[:1] + daily_timestamps [2:]
+    daily_corr = np.array(
+        [avg_correlation[timestamp] for timestamp in daily_timestamps])
+        
+    print(correlations, 'Average Correlation:', np.average(daily_corr))
+    print(correlations, 'RMS Correlation:',
+          np.sqrt(np.mean(daily_corr**2)))
+    plt.hist(daily_corr, bins=[n/10 for n in range(-10, 11)])
+    plt.title(correlations + ' Temporal Correlations')
+    plt.show()
+
 
 #%%
