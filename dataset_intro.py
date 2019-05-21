@@ -208,10 +208,37 @@ for i in range(temporal_sample_size):
 i = 1
 zero_shift_timestamp = no_of_timestamps-1
 days_to_minutes = 24*60
+minute_vertical_range = [0, 1]
 daily_vertical_range = [0, 1]
 weekly_vertical_range = [-0.1, 0.5]
 for correlations in temporal_correlations:
     avg_correlation = np.average(temporal_correlations[correlations], axis=0)
+
+    # Demonstrate 5-minute periodicity.
+
+    # One unit of time equals 5 minutes.
+    time_window = (
+        zero_shift_timestamp - 4 * 5 // 5,
+        zero_shift_timestamp + 4 * 5 // 5)
+    print(time_window)
+    plt.subplot(len(temporal_correlations), 3, i).plot(
+        # One unit of time equals 5 minutes.
+        [5 * (x - zero_shift_timestamp)
+         for x in range(len(avg_correlation))][time_window[0]:time_window[1]],
+        avg_correlation[time_window[0]:time_window[1]], '-',
+        # zero time-shift
+        2*[0], daily_vertical_range, '--',
+        # +/- a few days
+        2*[1*5], daily_vertical_range, '--',
+        2*[-1*5], daily_vertical_range, '--',
+        2*[2*5], daily_vertical_range, '--',
+        2*[-2*5], daily_vertical_range, '--',
+        2*[3*5], daily_vertical_range, '--',
+        2*[-3*5], daily_vertical_range, '--')
+    plt.title(correlations + ' 5 minute Periodicity')
+    plt.xlabel('Time-shift (Minutes)')
+    plt.ylabel('Cross-correlation')
+    i += 1
 
     # Demonstrate daily periodicity.
 
@@ -219,7 +246,7 @@ for correlations in temporal_correlations:
     time_window = (
         zero_shift_timestamp - 4 * days_to_minutes // 5,
         zero_shift_timestamp + 4 * days_to_minutes // 5)
-    plt.subplot(len(temporal_correlations), 2, i).plot(
+    plt.subplot(len(temporal_correlations), 3, i).plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp) / days_to_minutes
          for x in range(len(avg_correlation))][time_window[0]:time_window[1]],
@@ -245,7 +272,7 @@ for correlations in temporal_correlations:
         zero_shift_timestamp - 4 * 7 * days_to_minutes // 5,
         zero_shift_timestamp + 4 * 7 * days_to_minutes // 5)
     smoothed = ss.medfilt(avg_correlation, kernel_size=249)
-    plt.subplot(len(temporal_correlations), 2, i).plot(
+    plt.subplot(len(temporal_correlations), 3, i).plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp) / (7 * days_to_minutes)
          for x in range(len(smoothed))][time_window[0]:time_window[1]],
