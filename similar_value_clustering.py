@@ -69,7 +69,7 @@ plt.show()
 NO_OF_BINS = 10
 BIN_INTERVAL = 1 / NO_OF_BINS
 UTILISATION_BINS = {(i / NO_OF_BINS,
-                     i / NO_OF_BINS + BIN_INTERVAL) for i in range(10)}
+                     (i + 1) / NO_OF_BINS) for i in range(10)}
 
 # 5 minutes,
 # 10 minutes,
@@ -125,10 +125,13 @@ class ClusterMember(object):
         self.machine_no = machine_no
         self.t = t
 
-        lo = self.value // BIN_INTERVAL / NO_OF_BINS
-        hi = lo + BIN_INTERVAL
-        self.bin = (lo, hi)
-        assert self.bin in UTILISATION_BINS, '{} is not in {}'.format(
+        if self.value < 1.0:
+            lo = self.value // BIN_INTERVAL / NO_OF_BINS
+            hi = round(lo + BIN_INTERVAL, 2)
+            self.bin = (lo, hi)
+        else:
+            self.bin = (0.9, 1.0)
+        assert self.bin in UTILISATION_BINS, '{} is not in {}.'.format(
             self.bin, UTILISATION_BINS)
         self.previous_values = dict()
         self.percent_changes = dict()
@@ -183,10 +186,9 @@ for data_type in SPATIAL_SAMPLES:
 elapsed_time = time.process_time() - start
 
 #%%
-for i in CLUSTERS_AT_T[0].keys():
-    print(
-        len(CLUSTERS_AT_T[0][i].members)
-    )
+print(
+    CLUSTERS_AT_T[3]
+)
 
 #%%
 start = time.process_time()
@@ -197,7 +199,7 @@ for data_type in TEMPORAL_CORRELATIONS:
     for machine_no in range(SPATIAL_SAMPLE_SIZE):
         for t in range(NO_OF_TIMESTAMPS):
             lo = samples[machine_no, t] // BIN_INTERVAL / NO_OF_BINS
-            hi = lo + BIN_INTERVAL
+            hi = round(lo + BIN_INTERVAL, 2)
             bin = (lo, hi)
             assert bin in UTILISATION_BINS, '{} is not in {}'.format(
                 bin, UTILISATION_BINS)
