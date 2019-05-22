@@ -10,33 +10,33 @@ from numpy import mean, median
 
 #%%
 np.random.seed(19)
-cpu_data_exists = False
-mem_data_exists = False
+CPU_DATA_EXISTS = False
+MEM_DATA_EXISTS = False
 
 #%%
-if not cpu_data_exists:
-    cpu_data = np.load('google-cpu-full.npy')
-    np.random.shuffle(cpu_data)
-cpu_data_exists = True
+if not CPU_DATA_EXISTS:
+    CPU_DATA = np.load('google-cpu-full.npy')
+    np.random.shuffle(CPU_DATA)
+CPU_DATA_EXISTS = True
 
-if not mem_data_exists:
-    mem_data = np.load('google-mem-full.npy')
-    np.random.shuffle(mem_data)
-mem_data_exists = True
+if not MEM_DATA_EXISTS:
+    MEM_DATA = np.load('google-mem-full.npy')
+    np.random.shuffle(MEM_DATA)
+MEM_DATA_EXISTS = True
 
-assert cpu_data.shape == mem_data.shape
+assert CPU_DATA.shape == MEM_DATA.shape
 
-no_of_machines = cpu_data.shape[0]
-no_of_timestamps = cpu_data.shape[1]
+NO_OF_MACHINES = CPU_DATA.shape[0]
+NO_OF_TIMESTAMPS = CPU_DATA.shape[1]
 days_to_minutes = 24*60
 
-spatial_sample_size = 200
-cpu_spatial_sample = cpu_data[:spatial_sample_size]
-mem_spatial_sample = mem_data[:spatial_sample_size]
+SPATIAL_SAMPLE_SIZE = 200
+CPU_SPATIAL_SAMPLE = CPU_DATA[:SPATIAL_SAMPLE_SIZE]
+MEM_SPATIAL_SAMPLE = MEM_DATA[:SPATIAL_SAMPLE_SIZE]
 
 #%%
 # split into train and test sets
-X = cpu_spatial_sample[0]
+X = CPU_SPATIAL_SAMPLE[0]
 train_size = int(len(X) * 0.66)
 train, test = X[:train_size], X[train_size:]
 train_X, train_y = train[:-1], train[1:]

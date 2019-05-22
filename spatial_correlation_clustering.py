@@ -7,29 +7,29 @@ import matplotlib.pyplot as plt
 import scipy.signal as ss
 
 np.random.seed(19)
-cpu_data_exists = False
-mem_data_exists = False
+CPU_DATA_EXISTS = False
+MEM_DATA_EXISTS = False
 
 #%%
-if not cpu_data_exists:
-    cpu_data = np.load('google-cpu-full.npy')
-    np.random.shuffle(cpu_data)
-cpu_data_exists = True
+if not CPU_DATA_EXISTS:
+    CPU_DATA = np.load('google-cpu-full.npy')
+    np.random.shuffle(CPU_DATA)
+CPU_DATA_EXISTS = True
 
-if not mem_data_exists:
-    mem_data = np.load('google-mem-full.npy')
-    np.random.shuffle(mem_data)
-mem_data_exists = True
+if not MEM_DATA_EXISTS:
+    MEM_DATA = np.load('google-mem-full.npy')
+    np.random.shuffle(MEM_DATA)
+MEM_DATA_EXISTS = True
 
-assert cpu_data.shape == mem_data.shape
+assert CPU_DATA.shape == MEM_DATA.shape
 
-no_of_machines = cpu_data.shape[0]
-no_of_timestamps = cpu_data.shape[1]
+NO_OF_MACHINES = CPU_DATA.shape[0]
+NO_OF_TIMESTAMPS = CPU_DATA.shape[1]
 days_to_minutes = 24*60
 
-spatial_sample_size = 200
-cpu_spatial_sample = cpu_data[:spatial_sample_size]
-mem_spatial_sample = mem_data[:spatial_sample_size]
+SPATIAL_SAMPLE_SIZE = 200
+CPU_SPATIAL_SAMPLE = CPU_DATA[:SPATIAL_SAMPLE_SIZE]
+MEM_SPATIAL_SAMPLE = MEM_DATA[:SPATIAL_SAMPLE_SIZE]
 
 #%%
 def ccf(x, y, no_lag=False):
@@ -57,36 +57,36 @@ def ccf(x, y, no_lag=False):
         return correlation / (np.std(y) * np.std(x) * len(y))
 
 #%%
-time_windows = [2*[no_of_timestamps//2], 2*[no_of_timestamps//4],
+time_windows = [2*[NO_OF_TIMESTAMPS//2], 2*[NO_OF_TIMESTAMPS//4],
                 2*[1*days_to_minutes//5], 2*[7*days_to_minutes//5],
                 2*[2], 2*[4], 2*[10]]
 
 class TwoCorrelationWindows(object):
     def __init__(self):
-        self.first = np.empty((spatial_sample_size, spatial_sample_size-1))
-        self.second = np.empty((spatial_sample_size, spatial_sample_size-1))
+        self.first = np.empty((SPATIAL_SAMPLE_SIZE, SPATIAL_SAMPLE_SIZE-1))
+        self.second = np.empty((SPATIAL_SAMPLE_SIZE, SPATIAL_SAMPLE_SIZE-1))
 
 
-cpu_spatial_correlations = mem_spatial_correlations = dict()
+CPU_SPATIAL_CORRELATIONS = MEM_SPATIAL_CORRELATIONS = dict()
 for window in time_windows:
-    cpu_spatial_correlations[tuple(window)] = (
+    CPU_SPATIAL_CORRELATIONS[tuple(window)] = (
         TwoCorrelationWindows())
-    mem_spatial_correlations[tuple(window)] = (
+    MEM_SPATIAL_CORRELATIONS[tuple(window)] = (
         TwoCorrelationWindows())
-spatial_correlations = {
-    'CPU': cpu_spatial_correlations, 'MEM': mem_spatial_correlations}
+SPATIAL_CORRELATIONS = {
+    'CPU': CPU_SPATIAL_CORRELATIONS, 'MEM': MEM_SPATIAL_CORRELATIONS}
 
 #%%
 for window in time_windows:
-    for i in range(spatial_sample_size):
+    for i in range(SPATIAL_SAMPLE_SIZE):
         k=0
-        for j in range(spatial_sample_size):
+        for j in range(SPATIAL_SAMPLE_SIZE):
             #If the first and second machine are the same one, skip.
             if i != j:
-                for sample_corr_tup in [(cpu_spatial_sample,
-                                         cpu_spatial_correlations),
-                                        (mem_spatial_sample,
-                                         mem_spatial_correlations)]:
+                for sample_corr_tup in [(CPU_SPATIAL_SAMPLE,
+                                         CPU_SPATIAL_CORRELATIONS),
+                                        (MEM_SPATIAL_SAMPLE,
+                                         MEM_SPATIAL_CORRELATIONS)]:
                     machine_x = sample_corr_tup[0][i][:window[0]]
                     machine_y = sample_corr_tup[0][j][:window[0]]
                     (sample_corr_tup[1][tuple(window)].first)[i, k] = (
@@ -108,8 +108,8 @@ for window_widths in time_windows:
     print(window_widths)
     window = tuple(window_widths)
     i = 1
-    for correlation in spatial_correlations:
-        corr = spatial_correlations[correlation]
+    for correlation in SPATIAL_CORRELATIONS:
+        corr = SPATIAL_CORRELATIONS[correlation]
         avg = np.average(corr[window].first)
         high_corr = (corr[window].first[corr[window].first>avg]
                      - corr[window].second[corr[window].first>avg])
@@ -119,7 +119,7 @@ for window_widths in time_windows:
         values, base = np.histogram(high_corr,
                                     bins=[n/100 for n in range(-85, 99)])
 
-        ax0 = plt.subplot(len(spatial_correlations), 1, i)
+        ax0 = plt.subplot(len(SPATIAL_CORRELATIONS), 1, i)
         ax0.plot(base[:-1], values)
         ax1 = ax0.twinx()  # instantiate a second axes that shares the same x-axis
         ax1.plot(base[:-1], np.cumsum(values), '-',
@@ -135,32 +135,32 @@ for window_widths in time_windows:
 #%%
 
 time_windows = [
-    [no_of_timestamps//2, no_of_timestamps//4],
+    [NO_OF_TIMESTAMPS//2, NO_OF_TIMESTAMPS//4],
     [7*days_to_minutes//5, 1*days_to_minutes//5],
     [14*days_to_minutes//5, 1*days_to_minutes//5],
     [14*days_to_minutes//5, 1*days_to_minutes//(24*5)],
 ]
 
-cpu_spatial_correlations = mem_spatial_correlations = dict()
+CPU_SPATIAL_CORRELATIONS = MEM_SPATIAL_CORRELATIONS = dict()
 for window in time_windows:
-    cpu_spatial_correlations[tuple(window)] = (
+    CPU_SPATIAL_CORRELATIONS[tuple(window)] = (
         TwoCorrelationWindows())
-    mem_spatial_correlations[tuple(window)] = (
+    MEM_SPATIAL_CORRELATIONS[tuple(window)] = (
         TwoCorrelationWindows())
-spatial_correlations = {
-    'CPU': cpu_spatial_correlations, 'MEM': mem_spatial_correlations}
+SPATIAL_CORRELATIONS = {
+    'CPU': CPU_SPATIAL_CORRELATIONS, 'MEM': MEM_SPATIAL_CORRELATIONS}
 
 #%%
 for window in time_windows:
-    for i in range(spatial_sample_size):
+    for i in range(SPATIAL_SAMPLE_SIZE):
         k=0
-        for j in range(spatial_sample_size):
+        for j in range(SPATIAL_SAMPLE_SIZE):
             #If the first and second machine are the same one, skip.
             if i != j:
-                for sample_corr_tup in [(cpu_spatial_sample,
-                                         cpu_spatial_correlations),
-                                        (mem_spatial_sample,
-                                         mem_spatial_correlations)]:
+                for sample_corr_tup in [(CPU_SPATIAL_SAMPLE,
+                                         CPU_SPATIAL_CORRELATIONS),
+                                        (MEM_SPATIAL_SAMPLE,
+                                         MEM_SPATIAL_CORRELATIONS)]:
                     machine_x = sample_corr_tup[0][i][:window[0]]
                     machine_y = sample_corr_tup[0][j][:window[0]]
                     (sample_corr_tup[1][tuple(window)].first)[i, k] = (
@@ -182,8 +182,8 @@ for window_widths in time_windows:
     print(window_widths)
     window = tuple(window_widths)
     i = 1
-    for correlation in spatial_correlations:
-        corr = spatial_correlations[correlation]
+    for correlation in SPATIAL_CORRELATIONS:
+        corr = SPATIAL_CORRELATIONS[correlation]
         avg = np.average(corr[window].first)
         high_corr = (corr[window].first[corr[window].first>avg]
                      - corr[window].second[corr[window].first>avg])
@@ -193,7 +193,7 @@ for window_widths in time_windows:
         values, base = np.histogram(high_corr,
                                     bins=[n/100 for n in range(-85, 99)])
 
-        ax0 = plt.subplot(len(spatial_correlations), 1, i)
+        ax0 = plt.subplot(len(SPATIAL_CORRELATIONS), 1, i)
         ax0.plot(base[:-1], values)
         ax1 = ax0.twinx()  # instantiate a second axes that shares the same x-axis
         ax1.plot(base[:-1], np.cumsum(values), '-',
@@ -211,39 +211,39 @@ for window_widths in time_windows:
 time_windows = [2*[1*days_to_minutes//5], 2*[1*days_to_minutes//5],
                 2*[1*days_to_minutes//5], ]
 
-cpu_spatial_correlations = mem_spatial_correlations = dict()
+CPU_SPATIAL_CORRELATIONS = MEM_SPATIAL_CORRELATIONS = dict()
 for window in time_windows:
-    cpu_spatial_correlations[tuple(window)] = (
+    CPU_SPATIAL_CORRELATIONS[tuple(window)] = (
         TwoCorrelationWindows())
-    mem_spatial_correlations[tuple(window)] = (
+    MEM_SPATIAL_CORRELATIONS[tuple(window)] = (
         TwoCorrelationWindows())
-spatial_correlations = {
-    'CPU': cpu_spatial_correlations, 'MEM': mem_spatial_correlations}
+SPATIAL_CORRELATIONS = {
+    'CPU': CPU_SPATIAL_CORRELATIONS, 'MEM': MEM_SPATIAL_CORRELATIONS}
 
 #%%
 for window in time_windows:
     r = np.random.uniform()
     print(r)
-    for i in range(spatial_sample_size):
+    for i in range(SPATIAL_SAMPLE_SIZE):
         k=0
-        for j in range(spatial_sample_size):
+        for j in range(SPATIAL_SAMPLE_SIZE):
             #If the first and second machine are the same one, skip.
             if i != j:
-                for sample_corr_tup in [(cpu_spatial_sample,
-                                         cpu_spatial_correlations),
-                                        (mem_spatial_sample,
-                                         mem_spatial_correlations)]:
-                    machine_x = sample_corr_tup[0][i][int(r*no_of_timestamps):int(r*no_of_timestamps)+window[0]]
-                    machine_y = sample_corr_tup[0][j][int(r*no_of_timestamps):int(r*no_of_timestamps)+window[0]]
+                for sample_corr_tup in [(CPU_SPATIAL_SAMPLE,
+                                         CPU_SPATIAL_CORRELATIONS),
+                                        (MEM_SPATIAL_SAMPLE,
+                                         MEM_SPATIAL_CORRELATIONS)]:
+                    machine_x = sample_corr_tup[0][i][int(r*NO_OF_TIMESTAMPS):int(r*NO_OF_TIMESTAMPS)+window[0]]
+                    machine_y = sample_corr_tup[0][j][int(r*NO_OF_TIMESTAMPS):int(r*NO_OF_TIMESTAMPS)+window[0]]
                     (sample_corr_tup[1][tuple(window)].first)[i, k] = (
                         ccf(machine_x, machine_y, no_lag=True))
 
                     machine_x = sample_corr_tup[0][i][
-                        int(r*no_of_timestamps) + window[0] + 1 :
-                        int(r*no_of_timestamps) + window[0] + window[1]]
+                        int(r*NO_OF_TIMESTAMPS) + window[0] + 1 :
+                        int(r*NO_OF_TIMESTAMPS) + window[0] + window[1]]
                     machine_y = sample_corr_tup[0][j][
-                        int(r*no_of_timestamps) + window[0] + 1 :
-                        int(r*no_of_timestamps) + window[0] + window[1]]
+                        int(r*NO_OF_TIMESTAMPS) + window[0] + 1 :
+                        int(r*NO_OF_TIMESTAMPS) + window[0] + window[1]]
                     (sample_corr_tup[1][tuple(window)].second)[i, k] = (
                         ccf(machine_x, machine_y, no_lag=True))
                 k += 1
@@ -254,8 +254,8 @@ for window_widths in time_windows:
     print(window_widths)
     window = tuple(window_widths)
     i = 1
-    for correlation in spatial_correlations:
-        corr = spatial_correlations[correlation]
+    for correlation in SPATIAL_CORRELATIONS:
+        corr = SPATIAL_CORRELATIONS[correlation]
         avg = np.average(corr[window].first)
         high_corr = (corr[window].first[corr[window].first>avg]
                      - corr[window].second[corr[window].first>avg])
@@ -265,7 +265,7 @@ for window_widths in time_windows:
         values, base = np.histogram(high_corr,
                                     bins=[n/100 for n in range(-85, 99)])
 
-        ax0 = plt.subplot(len(spatial_correlations), 1, i)
+        ax0 = plt.subplot(len(SPATIAL_CORRELATIONS), 1, i)
         ax0.plot(base[:-1], values)
         ax1 = ax0.twinx()  # instantiate a second axes that shares the same x-axis
         ax1.plot(base[:-1], np.cumsum(values), '-',
