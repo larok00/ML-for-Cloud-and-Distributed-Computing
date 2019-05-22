@@ -62,8 +62,7 @@ plt.tight_layout()
 plt.show()
 
 #%%
-clusters = dict()
-utilisation_bins = [(i/10, i/10+0.1) for i in range(10)]
+UTILISATION_BINS = {(i/10, i/10+0.1) for i in range(10)}
 
 # 5 minutes,
 # 10 minutes,
@@ -72,9 +71,16 @@ utilisation_bins = [(i/10, i/10+0.1) for i in range(10)]
 # 1 day,
 # 1 week.
 # Unit of time in timestamps is 5 minutes.
-trend_lengths = [1, 2, 3, 60//5, 1*DAYS_TO_MINUTES//5, 7*DAYS_TO_MINUTES//5]
-trends = {INCRESING, STABLE, DECREASING}
+TREND_LENGTHS = [1, 2, 3, 60//5, 1*DAYS_TO_MINUTES//5, 7*DAYS_TO_MINUTES//5]
+TRENDS = {'INCRESING', 'STABLE', 'DECREASING'}
 
-for bin in utilisation_bins:minutesdaysytoiminutesDAYSTOMdaysEtoinutes
-    for length in trend_lengths:
-        clusters[bin, length, ]
+for data_type in TEMPORAL_CORRELATIONS:
+    correlations = TEMPORAL_CORRELATIONS[data_type]
+    for i in range(SPATIAL_SAMPLE_SIZE):
+        for j in range(NO_OF_TIMESTAMPS):
+            break
+            bin = None
+            correlations[i, j] = None
+
+
+#%%

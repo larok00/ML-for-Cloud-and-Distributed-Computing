@@ -25,7 +25,7 @@ assert CPU_DATA.shape == MEM_DATA.shape
 
 NO_OF_MACHINES = CPU_DATA.shape[0]
 NO_OF_TIMESTAMPS = CPU_DATA.shape[1]
-days_to_minutes = 24*60
+DAYS_TO_MINUTES = 24*60
 
 SPATIAL_SAMPLE_SIZE = 200
 CPU_SPATIAL_SAMPLE = CPU_DATA[:SPATIAL_SAMPLE_SIZE]
@@ -58,7 +58,7 @@ def ccf(x, y, no_lag=False):
 
 #%%
 time_windows = [2*[NO_OF_TIMESTAMPS//2], 2*[NO_OF_TIMESTAMPS//4],
-                2*[1*days_to_minutes//5], 2*[7*days_to_minutes//5],
+                2*[1*DAYS_TO_MINUTES//5], 2*[7*DAYS_TO_MINUTES//5],
                 2*[2], 2*[4], 2*[10]]
 
 class TwoCorrelationWindows(object):
@@ -136,9 +136,9 @@ for window_widths in time_windows:
 
 time_windows = [
     [NO_OF_TIMESTAMPS//2, NO_OF_TIMESTAMPS//4],
-    [7*days_to_minutes//5, 1*days_to_minutes//5],
-    [14*days_to_minutes//5, 1*days_to_minutes//5],
-    [14*days_to_minutes//5, 1*days_to_minutes//(24*5)],
+    [7*DAYS_TO_MINUTES//5, 1*DAYS_TO_MINUTES//5],
+    [14*DAYS_TO_MINUTES//5, 1*DAYS_TO_MINUTES//5],
+    [14*DAYS_TO_MINUTES//5, 1*DAYS_TO_MINUTES//(24*5)],
 ]
 
 CPU_SPATIAL_CORRELATIONS = MEM_SPATIAL_CORRELATIONS = dict()
@@ -208,8 +208,8 @@ for window_widths in time_windows:
 
 
 #%%
-time_windows = [2*[1*days_to_minutes//5], 2*[1*days_to_minutes//5],
-                2*[1*days_to_minutes//5], ]
+time_windows = [2*[1*DAYS_TO_MINUTES//5], 2*[1*DAYS_TO_MINUTES//5],
+                2*[1*DAYS_TO_MINUTES//5], ]
 
 CPU_SPATIAL_CORRELATIONS = MEM_SPATIAL_CORRELATIONS = dict()
 for window in time_windows:

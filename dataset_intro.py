@@ -207,7 +207,7 @@ for i in range(TEMPORAL_SAMPLE_SIZE):
 #%%
 i = 1
 zero_shift_timestamp = NO_OF_TIMESTAMPS-1
-days_to_minutes = 24*60
+DAYS_TO_MINUTES = 24*60
 minute_vertical_range = [0, 1]
 daily_vertical_range = [0, 1]
 weekly_vertical_range = [-0.1, 0.5]
@@ -244,11 +244,11 @@ for correlations in TEMPORAL_CORRELATIONS:
 
     # One unit of time equals 5 minutes.
     time_window = (
-        zero_shift_timestamp - 4 * days_to_minutes // 5,
-        zero_shift_timestamp + 4 * days_to_minutes // 5)
+        zero_shift_timestamp - 4 * DAYS_TO_MINUTES // 5,
+        zero_shift_timestamp + 4 * DAYS_TO_MINUTES // 5)
     plt.subplot(len(TEMPORAL_CORRELATIONS), 3, i).plot(
         # One unit of time equals 5 minutes.
-        [5 * (x - zero_shift_timestamp) / days_to_minutes
+        [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
          for x in range(len(avg_correlation))][time_window[0]:time_window[1]],
         avg_correlation[time_window[0]:time_window[1]], '-',
         # zero time-shift
@@ -269,12 +269,12 @@ for correlations in TEMPORAL_CORRELATIONS:
 
     # One unit of time equals 5 minutes.
     time_window = (
-        zero_shift_timestamp - 4 * 7 * days_to_minutes // 5,
-        zero_shift_timestamp + 4 * 7 * days_to_minutes // 5)
+        zero_shift_timestamp - 4 * 7 * DAYS_TO_MINUTES // 5,
+        zero_shift_timestamp + 4 * 7 * DAYS_TO_MINUTES // 5)
     smoothed = ss.medfilt(avg_correlation, kernel_size=249)
     plt.subplot(len(TEMPORAL_CORRELATIONS), 3, i).plot(
         # One unit of time equals 5 minutes.
-        [5 * (x - zero_shift_timestamp) / (7 * days_to_minutes)
+        [5 * (x - zero_shift_timestamp) / (7 * DAYS_TO_MINUTES)
          for x in range(len(smoothed))][time_window[0]:time_window[1]],
         smoothed[time_window[0]:time_window[1]], '-',
         # zero time-shift
@@ -308,7 +308,7 @@ for correlations in TEMPORAL_CORRELATIONS:
 for correlations in TEMPORAL_CORRELATIONS:
     avg_correlation = np.average(TEMPORAL_CORRELATIONS[correlations], axis=0)
     daily_timestamps = (
-        [zero_shift_timestamp + n * days_to_minutes // 5 for n in range(-1, 2)])
+        [zero_shift_timestamp + n * DAYS_TO_MINUTES // 5 for n in range(-1, 2)])
     daily_timestamps = daily_timestamps[:1] + daily_timestamps [2:]
     daily_corr = np.array(
         [avg_correlation[timestamp] for timestamp in daily_timestamps])
