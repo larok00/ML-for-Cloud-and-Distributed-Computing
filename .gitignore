@@ -106,5 +106,4 @@ venv.bak/
 ##################################################
 
 .vscode
-google-cpu-full.npy
-google-mem-full.npy
+data/

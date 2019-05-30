@@ -9,15 +9,20 @@ import pickle
 import time
 
 np.random.seed(19)
+DATA_DIR = 'data/'
+PICKLE_DIR = 'pickles/'
+DAYS_TO_MINUTES = 24*60
 DATA_TYPES = {'CPU', 'MEM'}
+SAMPLE_SIZE = 1250//10
 
 #%%
 DATA = dict()
+SAMPLES = dict()
 
 #%%
 for data_type in DATA_TYPES:
     if data_type not in DATA:
-        DATA[data_type] = np.load('google-cpu-full.npy')
+        DATA[data_type] = np.load(DATA_DIR + data_type + '.npy')
         np.random.shuffle(DATA[data_type])
 
 second_data_type = None
@@ -29,10 +34,7 @@ for first_data_type in DATA:
 assert second_data_type is not None
 NO_OF_MACHINES = DATA[second_data_type].shape[0]
 NO_OF_TIMESTAMPS = DATA[second_data_type].shape[1]
-DAYS_TO_MINUTES = 24*60
 
-SAMPLE_SIZE = 1250//10
-SAMPLES = dict()
 for data_type in DATA:
     SAMPLES[data_type] = DATA[data_type][:SAMPLE_SIZE]
 
@@ -70,7 +72,7 @@ class TwoCorrelationWindows(object):
 
 #%%
 try:
-    pickle_in = open("spatial_correlations.pickle","rb")
+    pickle_in = open(PICKLE_DIR + "spatial_correlations.pickle","rb")
     SPATIAL_CORRELATIONS = pickle.load(pickle_in)
 except FileNotFoundError:
     CPU_SPATIAL_CORRELATIONS = TwoCorrelationWindows()
@@ -105,7 +107,7 @@ for i in range(SAMPLE_SIZE):
                     (SPATIAL_CORRELATIONS[data_type].full)[j, i] = (
                         SPATIAL_CORRELATIONS[data_type].full)[i, j-1]
 
-pickle_out = open("spatial_correlations.pickle","wb")
+pickle_out = open(PICKLE_DIR + "spatial_correlations.pickle","wb")
 pickle.dump(SPATIAL_CORRELATIONS, pickle_out)
 pickle_out.close()
 
@@ -222,7 +224,7 @@ def calculate_correlations(time_windows, overwrite=False):
 
     try:
         if not overwrite:
-            pickle_in = open("spatial_correlations.pickle","rb")
+            pickle_in = open(PICKLE_DIR + "spatial_correlations.pickle","rb")
             spatial_corrs = pickle.load(pickle_in)
             for data_type in SPATIAL_CORRELATIONS:
                 SPATIAL_CORRELATIONS[data_type].first = {
@@ -234,7 +236,7 @@ def calculate_correlations(time_windows, overwrite=False):
     except FileNotFoundError:
         pass
     finally:
-        pickle_out = open("spatial_correlations.pickle","wb")
+        pickle_out = open(PICKLE_DIR + "spatial_correlations.pickle","wb")
         pickle.dump(SPATIAL_CORRELATIONS, pickle_out)
         pickle_out.close()
 
