@@ -69,7 +69,7 @@ plt.show()
 NO_OF_BINS = 10
 BIN_INTERVAL = 1 / NO_OF_BINS
 UTILISATION_BINS = {(i / NO_OF_BINS,
-                     (i + 1) / NO_OF_BINS) for i in range(10)}
+                     (i + 1) / NO_OF_BINS) for i in range(NO_OF_BINS)}
 
 # 5 minutes,
 # 10 minutes,
@@ -78,7 +78,7 @@ UTILISATION_BINS = {(i / NO_OF_BINS,
 # 1 day,
 # 1 week.
 # Unit of time in timestamps is 5 minutes.
-TREND_LENGTHS = [1, 2, 3, 60 // 5, 1 * 24 * 60 // 5, 7 * 24 * 60 // 5]
+TREND_LENGTHS = [1, 2, 3, 1 * 24 * 60 // 5]
 TREND_VALS = {'INCREASING', 'STABLE', 'DECREASING'}
 
 class Cluster(object):
@@ -93,6 +93,8 @@ class Cluster(object):
         for trend in self.trends:
             self.percent_changes[trend] = None
             self.previous_values[trend] = None
+        
+        self.history = None
     
     def add_member(self, new_member):
         assert new_member.t == self.t
@@ -117,6 +119,13 @@ class Cluster(object):
                 self.percent_changes[trend] = (
                     ((cluster_size-1) * self.percent_changes[trend]
                     + new_member.percent_changes[trend]) / cluster_size)
+        
+        if self.history is None:
+            self.history = new_member.history
+        else:
+            self.history = (
+                ((cluster_size-1) * self.history + new_member.history)
+                / cluster_size)
 
 class ClusterMember(object):
     def __init__(self, data_type, machine_no, t):
@@ -164,9 +173,11 @@ class ClusterMember(object):
             self.previous_values[length] = previous_value
             self.percent_changes[length] = percent_change
             self.trends[length] = trend
+        
+        self.history = None if t == 0 else samples[machine_no, :t]
 
 CLUSTERS_AT_T = dict()
-for t in range(NO_OF_TIMESTAMPS)[:1]:
+for t in range(NO_OF_TIMESTAMPS)[19:20]:
     CLUSTERS_AT_T[t] = dict()
 
 #%%
@@ -174,7 +185,7 @@ start = time.process_time()
 for data_type in SPATIAL_SAMPLES:
     samples = SPATIAL_SAMPLES[data_type]
     for machine_no in range(SPATIAL_SAMPLE_SIZE):
-        for t in range(NO_OF_TIMESTAMPS)[:1]:
+        for t in range(NO_OF_TIMESTAMPS)[19:20]:
             clusters = CLUSTERS_AT_T[t]
             member = ClusterMember(data_type, machine_no, t)
             key = [member.bin]
@@ -191,14 +202,21 @@ elapsed_time = time.process_time() - start
 print(elapsed_time)
 print('\n')
 sum = 0
-for i in CLUSTERS_AT_T[0].keys():
-    sum += len(CLUSTERS_AT_T[0][i].members)
-    print(
-        len(CLUSTERS_AT_T[0][i].members)
-    )
+j = 1
+for i in CLUSTERS_AT_T[19]:
+    cluster = CLUSTERS_AT_T[19][i]
+    sum += len(cluster.members)
+    plt.subplot(40, 10, j).plot(cluster.history)
+    j += 1
 sum
+plt.show()
 
 #%%
+for key in CLUSTERS_AT_T[19].keys():
+    print(len(key))
+    break
+print(j)
+print(len(TREND_LENGTHS)*len(TREND_VALS)*NO_OF_BINS)
 sum/NO_OF_MACHINES
 
 #%%

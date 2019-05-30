@@ -8,38 +8,52 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.signal as ss
+import pickle
+import time
 
 #%% [markdown]
 # ## Initializations
 
-#%%
 np.random.seed(19)
-CPU_DATA_EXISTS = False
-MEM_DATA_EXISTS = False
+DATA_TYPES = {'CPU', 'MEM'}
 
 #%%
-if not CPU_DATA_EXISTS:
-    CPU_DATA = np.load('google-cpu-full.npy')
-    np.random.shuffle(CPU_DATA)
-CPU_DATA_EXISTS = True
+DATA = dict()
 
 #%%
-if not MEM_DATA_EXISTS:
-    MEM_DATA = np.load('google-mem-full.npy')
-    np.random.shuffle(MEM_DATA)
-MEM_DATA_EXISTS = True
+for data_type in DATA_TYPES:
+    if data_type not in DATA:
+        DATA[data_type] = np.load('google-cpu-full.npy')
+        np.random.shuffle(DATA[data_type])
+
+second_data_type = None
+for first_data_type in DATA:
+    if second_data_type is not None:
+        assert DATA[first_data_type].shape == DATA[second_data_type].shape
+    second_data_type = first_data_type
+
+assert second_data_type is not None
+NO_OF_MACHINES = DATA[second_data_type].shape[0]
+NO_OF_TIMESTAMPS = DATA[second_data_type].shape[1]
+DAYS_TO_MINUTES = 24*60
+
+SAMPLE_SIZE = 1250//10
+SAMPLES = dict()
+for data_type in DATA:
+    SAMPLES[data_type] = DATA[data_type][:SAMPLE_SIZE]
+    
 
 #%% [markdown]
 # There are 12476 machines, each with 8351 datapoints.
 
 #%%
-print(CPU_DATA.shape)
-print(MEM_DATA.shape)
+for data_type in DATA:
+    print(DATA[data_type].shape)
 
-assert CPU_DATA.shape == MEM_DATA.shape
+assert DATA['CPU'].shape == DATA['MEM'].shape
 
-NO_OF_MACHINES = CPU_DATA.shape[0]
-NO_OF_TIMESTAMPS = CPU_DATA.shape[1]
+NO_OF_MACHINES = DATA['CPU'].shape[0]
+NO_OF_TIMESTAMPS = DATA['CPU'].shape[1]
 
 #%% [markdown]
 # We take a subsample of the machines. The dataset in its entirety is extremely
@@ -48,26 +62,18 @@ NO_OF_TIMESTAMPS = CPU_DATA.shape[1]
 # significance.
 
 #%%
-SPATIAL_SAMPLE_SIZE = 200
-CPU_SPATIAL_SAMPLE = CPU_DATA[:SPATIAL_SAMPLE_SIZE]
-MEM_SPATIAL_SAMPLE = MEM_DATA[:SPATIAL_SAMPLE_SIZE]
-
 CPU_SPATIAL_CORRELATIONS = np.empty(
-    (SPATIAL_SAMPLE_SIZE, SPATIAL_SAMPLE_SIZE-1))
+    (SAMPLE_SIZE, SAMPLE_SIZE-1))
 MEM_SPATIAL_CORRELATIONS = np.empty(
-    (SPATIAL_SAMPLE_SIZE, SPATIAL_SAMPLE_SIZE-1))
+    (SAMPLE_SIZE, SAMPLE_SIZE-1))
 SPATIAL_CORRELATIONS = {
     'CPU': CPU_SPATIAL_CORRELATIONS, 'MEM': MEM_SPATIAL_CORRELATIONS}
 
 #%%
-TEMPORAL_SAMPLE_SIZE = 200
-CPU_TEMPORAL_SAMPLE = CPU_DATA[:TEMPORAL_SAMPLE_SIZE]
-MEM_TEMPORAL_SAMPLE = MEM_DATA[:TEMPORAL_SAMPLE_SIZE]
-
 CPU_TEMPORAL_CORRELATIONS = np.empty(
-    (TEMPORAL_SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1))
+    (SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1))
 MEM_TEMPORAL_CORRELATIONS = np.empty(
-    (TEMPORAL_SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1))
+    (SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1))
 TEMPORAL_CORRELATIONS = {
     'CPU': CPU_TEMPORAL_CORRELATIONS, 'MEM': MEM_TEMPORAL_CORRELATIONS}
 
@@ -75,9 +81,9 @@ TEMPORAL_CORRELATIONS = {
 # We will be focusing on cpu and memory usage data.
 
 #%%
-plt.subplot(211).plot(CPU_DATA[0][:2*24*60//5])
+plt.subplot(211).plot(DATA['CPU'][0][:2*24*60//5])
 plt.title('CPU data')
-plt.subplot(212).plot(MEM_DATA[0][:2*24*60//5])
+plt.subplot(212).plot(DATA['MEM'][0][:2*24*60//5])
 plt.title('MEM data')
 plt.show()
 
@@ -110,82 +116,6 @@ def ccf(x, y, no_lag=False):
         return correlation / (np.std(y) * np.std(x) * len(y))
 
 #%% [markdown]
-# ### Spatial Correlation
-
-#%% [markdown]
-# Calculate the spatial correlation between every possible pair of machines
-# in our subsample. Do not include any time-shift. Do not include a machine's
-# correlation with itself (by definition this will be 1).
-
-#%%
-for i in range(SPATIAL_SAMPLE_SIZE):
-    k=0
-    for j in range(SPATIAL_SAMPLE_SIZE):
-        #If the first and second machine are the same one, skip.
-        if i != j:
-            machine_x = CPU_SPATIAL_SAMPLE[i]
-            machine_y = CPU_SPATIAL_SAMPLE[j]
-            CPU_SPATIAL_CORRELATIONS[i, k] = ccf(machine_x,
-                                                 machine_y,
-                                                 no_lag=True)
-            machine_x = MEM_SPATIAL_SAMPLE[i]
-            machine_y = MEM_SPATIAL_SAMPLE[j]
-            MEM_SPATIAL_CORRELATIONS[i, k] = ccf(machine_x,
-                                                 machine_y,
-                                                 no_lag=True)
-            k += 1
-    i += 1
-
-#%% [markdown]
-# Have a look at how high the spatial correlation values seem to be.
-
-#%%
-i = 1
-for correlations in SPATIAL_CORRELATIONS:
-    corr = SPATIAL_CORRELATIONS[correlations]
-    abs_correlations = np.abs(corr)
-    print(correlations, 'Maximum:', np.amax(corr))
-    print(correlations, 'Minimum:', np.amin(corr))
-    print(correlations, 'Average:', np.average(corr))
-    print(correlations, 'RMS:', np.sqrt(np.mean(abs_correlations)))
-    values, base = np.histogram(corr, bins=[n/100 for n in range(-85, 99)])
-
-    ax0 = plt.subplot(len(SPATIAL_CORRELATIONS), 1, i)
-    ax0.plot(base[:-1], values)
-    ax1 = ax0.twinx()  # instantiate a second axes that shares the same x-axis
-    ax1.plot(base[:-1], np.cumsum(values), '-',
-             2*[np.average(corr)], [0, 40000], '--')
-    plt.xticks([n/4 for n in range (-2, 4)])
-    plt.title(correlations + ' Spatial Correlations')
-    i += 1
-
-plt.tight_layout()
-plt.show()
-
-#%%
-i = 1
-for correlations in SPATIAL_CORRELATIONS:
-    corr = SPATIAL_CORRELATIONS[correlations]
-    abs_correlations = np.abs(corr)
-    print(correlations, 'Maximum:', np.amax(corr))
-    print(correlations, 'Minimum:', np.amin(corr))
-    print(correlations, 'Average:', np.average(corr))
-    print(correlations, 'RMS:', np.sqrt(np.mean(abs_correlations)))
-    values, base = np.histogram(corr, bins=[n/100 for n in range(-85, 101)])
-
-    ax0 = plt.subplot(len(SPATIAL_CORRELATIONS), 1, i)
-    ax0.plot(base[:-1], values)
-    ax1 = ax0.twinx()  # instantiate a second axes that shares the same x-axis
-    ax1.plot(base[:-1], np.cumsum(values), '-',
-             2*[np.average(corr)], [0, 40000], '--')
-    plt.xticks([n/4 for n in range (-2, 6)])
-    plt.title(correlations + ' Spatial Correlations')
-    i += 1
-
-plt.tight_layout()
-plt.show()
-
-#%% [markdown]
 # ### Temporal Correlation
 
 #%% [markdown]
@@ -193,13 +123,13 @@ plt.show()
 # at every possible time-shift.
 
 #%%
-for i in range(TEMPORAL_SAMPLE_SIZE):
+for i in range(SAMPLE_SIZE):
     CPU_TEMPORAL_CORRELATIONS[i] = ccf(
-        CPU_TEMPORAL_SAMPLE[i],
-        CPU_TEMPORAL_SAMPLE[i])
+        CPU_SAMPLE[i],
+        CPU_SAMPLE[i])
     MEM_TEMPORAL_CORRELATIONS[i] = ccf(
-        MEM_TEMPORAL_SAMPLE[i],
-        MEM_TEMPORAL_SAMPLE[i])
+        MEM_SAMPLE[i],
+        MEM_SAMPLE[i])
 
 #%% [markdown]
 # Have a look at the average temporal correlation for each time shift.
@@ -211,8 +141,8 @@ DAYS_TO_MINUTES = 24*60
 minute_vertical_range = [0, 1]
 daily_vertical_range = [0, 1]
 weekly_vertical_range = [-0.1, 0.5]
-for correlations in TEMPORAL_CORRELATIONS:
-    avg_correlation = np.average(TEMPORAL_CORRELATIONS[correlations], axis=0)
+for data_type in TEMPORAL_CORRELATIONS:
+    avg_correlation = np.average(TEMPORAL_CORRELATIONS[data_type], axis=0)
 
     # Demonstrate 5-minute periodicity.
 
@@ -221,7 +151,7 @@ for correlations in TEMPORAL_CORRELATIONS:
         zero_shift_timestamp - 4 * 5 // 5,
         zero_shift_timestamp + 4 * 5 // 5)
     print(time_window)
-    plt.subplot(len(TEMPORAL_CORRELATIONS), 3, i).plot(
+    plt.plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp)
          for x in range(len(avg_correlation))][time_window[0]:time_window[1]],
@@ -235,10 +165,11 @@ for correlations in TEMPORAL_CORRELATIONS:
         2*[-2*5], daily_vertical_range, '--',
         2*[3*5], daily_vertical_range, '--',
         2*[-3*5], daily_vertical_range, '--')
-    plt.title(correlations + ' 5 minute Periodicity')
+    plt.title(data_type + ' 5 minute Periodicity')
     plt.xlabel('Time-shift (Minutes)')
     plt.ylabel('Cross-correlation')
-    i += 1
+    plt.show()
+
 
     # Demonstrate daily periodicity.
 
@@ -246,7 +177,7 @@ for correlations in TEMPORAL_CORRELATIONS:
     time_window = (
         zero_shift_timestamp - 4 * DAYS_TO_MINUTES // 5,
         zero_shift_timestamp + 4 * DAYS_TO_MINUTES // 5)
-    plt.subplot(len(TEMPORAL_CORRELATIONS), 3, i).plot(
+    plt.plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
          for x in range(len(avg_correlation))][time_window[0]:time_window[1]],
@@ -260,10 +191,10 @@ for correlations in TEMPORAL_CORRELATIONS:
         2*[-2], daily_vertical_range, '--',
         2*[3], daily_vertical_range, '--',
         2*[-3], daily_vertical_range, '--')
-    plt.title(correlations + ' Daily Periodicity')
+    plt.title(data_type + ' Daily Periodicity')
     plt.xlabel('Time-shift (Days)')
     plt.ylabel('Cross-correlation')
-    i += 1
+    plt.show()
     
     # Demonstrate weekly periodicity.
 
@@ -272,7 +203,7 @@ for correlations in TEMPORAL_CORRELATIONS:
         zero_shift_timestamp - 4 * 7 * DAYS_TO_MINUTES // 5,
         zero_shift_timestamp + 4 * 7 * DAYS_TO_MINUTES // 5)
     smoothed = ss.medfilt(avg_correlation, kernel_size=249)
-    plt.subplot(len(TEMPORAL_CORRELATIONS), 3, i).plot(
+    plt.plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp) / (7 * DAYS_TO_MINUTES)
          for x in range(len(smoothed))][time_window[0]:time_window[1]],
@@ -280,44 +211,83 @@ for correlations in TEMPORAL_CORRELATIONS:
         # zero time-shift
         2*[0], weekly_vertical_range, '--',
         # +/- a few weeks
+        2*[4/7], weekly_vertical_range, '--',
+        2*[-4/7], weekly_vertical_range, '--',
         2*[1], weekly_vertical_range, '--',
         2*[-1], weekly_vertical_range, '--',
         2*[2], weekly_vertical_range, '--',
         2*[-2], weekly_vertical_range, '--',
         2*[3], weekly_vertical_range, '--',
         2*[-3], weekly_vertical_range, '--')
-    plt.title(correlations + ' Weekly Periodicity')
+    plt.title(data_type + ' Weekly Periodicity')
     plt.xlabel('Time-shift (Weeks)')
     plt.ylabel('Cross-correlation')
+    plt.show()
+
+
+    plt.plot(
+        # One unit of time equals 5 minutes.
+        [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
+         for x in range(len(avg_correlation))][zero_shift_timestamp:],
+        avg_correlation[zero_shift_timestamp:], '-',
+        # zero time-shift
+        2*[0], daily_vertical_range, '--',
+        # +/- a few days
+        2*[1/24], daily_vertical_range, '--',
+        2*[-1/24], daily_vertical_range, '--',
+        2*[2/24], daily_vertical_range, '--',
+        2*[-2/24], daily_vertical_range, '--',
+        2*[6/24], daily_vertical_range, '--',
+        2*[-6/24], daily_vertical_range, '--',
+        2*[4/24], daily_vertical_range, '--',
+        2*[-4/24], daily_vertical_range, '--',
+        2*[1], daily_vertical_range, '--',
+        2*[-1], daily_vertical_range, '--',
+        2*[2], daily_vertical_range, '--',
+        2*[-2], daily_vertical_range, '--',
+        2*[3], daily_vertical_range, '--',
+        2*[-3], daily_vertical_range, '--',
+        2*[4], daily_vertical_range, '--',
+        2*[-4], daily_vertical_range, '--',
+        2*[5], daily_vertical_range, '--',
+        2*[-5], daily_vertical_range, '--',
+        2*[6], daily_vertical_range, '--',
+        2*[-6], daily_vertical_range, '--',
+        2*[7], daily_vertical_range, '--',
+        2*[-7], daily_vertical_range, '--',
+        [0, 10], 2*[0], '--')
+    plt.title(data_type + ' Daily Periodicity')
+    plt.xlabel('Time-shift (Days)')
+    plt.ylabel('Cross-correlation')
+    plt.xscale('log')
+    plt.show()
     i += 1
 
-plt.tight_layout()
-plt.show()
 
 #%%
-for correlations in TEMPORAL_CORRELATIONS:
-    avg_correlation = np.average(TEMPORAL_CORRELATIONS[correlations], axis=0)
-    print(correlations, 'Average Correlation:', np.average(avg_correlation))
-    print(correlations, 'RMS Correlation:',
+for data_type in TEMPORAL_CORRELATIONS:
+    avg_correlation = np.average(TEMPORAL_CORRELATIONS[data_type], axis=0)
+    print(data_type, 'Average Correlation:', np.average(avg_correlation))
+    print(data_type, 'RMS Correlation:',
           np.sqrt(np.mean(avg_correlation**2)))
     plt.hist(avg_correlation, bins=[n/10 for n in range(-10, 11)])
-    plt.title(correlations + ' Temporal Correlations')
+    plt.title(data_type + ' Temporal Correlations')
     plt.show()
 
 #%%
-for correlations in TEMPORAL_CORRELATIONS:
-    avg_correlation = np.average(TEMPORAL_CORRELATIONS[correlations], axis=0)
+for data_type in TEMPORAL_CORRELATIONS:
+    avg_correlation = np.average(TEMPORAL_CORRELATIONS[data_type], axis=0)
     daily_timestamps = (
         [zero_shift_timestamp + n * DAYS_TO_MINUTES // 5 for n in range(-1, 2)])
     daily_timestamps = daily_timestamps[:1] + daily_timestamps [2:]
     daily_corr = np.array(
         [avg_correlation[timestamp] for timestamp in daily_timestamps])
         
-    print(correlations, 'Average Correlation:', np.average(daily_corr))
-    print(correlations, 'RMS Correlation:',
+    print(data_type, 'Average Correlation:', np.average(daily_corr))
+    print(data_type, 'RMS Correlation:',
           np.sqrt(np.mean(daily_corr**2)))
     plt.hist(daily_corr, bins=[n/10 for n in range(-10, 11)])
-    plt.title(correlations + ' Temporal Correlations')
+    plt.title(data_type + ' Temporal Correlations')
     plt.show()
 
 
