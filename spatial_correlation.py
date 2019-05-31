@@ -266,11 +266,11 @@ def plot_corr_drift(time_windows):
             ax1.plot(base[:-1], np.cumsum(values1)//2, 'g-',
                      base[:-1], np.cumsum(values2)//2, 'y-',
                      base[:-1], np.cumsum(values)//2, 'r-',
-                     2*[np.average(corr1)],
+                     2*[np.average(high_corr1)],
                      [0, SAMPLE_SIZE*(SAMPLE_SIZE-1)//2//2], 'g--',
-                     2*[np.average(corr2)],
+                     2*[np.average(high_corr2)],
                      [0, SAMPLE_SIZE*(SAMPLE_SIZE-1)//2//2], 'y--',
-                     2*[np.average(corr)],
+                     2*[np.average(high_corr)],
                      [0, SAMPLE_SIZE*(SAMPLE_SIZE-1)//2//2], 'r--')
             plt.xticks([n/4 for n in range (-2, 4)])
             plt.title(data_type + ' Spatial Correlation Drift')
