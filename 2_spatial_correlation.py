@@ -13,7 +13,7 @@ DATA_DIR = 'data/'
 PICKLE_DIR = 'pickles/'
 DAYS_TO_MINUTES = 24*60
 DATA_TYPES = {'CPU', 'MEM'}
-SAMPLE_SIZE = 1250//10
+SAMPLE_SIZE = 1250
 
 #%%
 DATA = dict()
@@ -42,15 +42,15 @@ for data_type in DATA:
 def ccf(x, y, no_lag=False):
     '''Normalized cross-correlation function,
     similar to ccf in the R language.
-    
+
     Parameters:
     x -- first time series
     y --  second time series
-    
+
     Optional:
     no_lag -- False by default. If true, return a list with every time-shift
         possible instead.
-    
+
     Returns:
         A float with 0 time-shift or a list of floats that represent the
         cross-correlation for every possible time-shift.
@@ -79,13 +79,6 @@ except FileNotFoundError:
     MEM_SPATIAL_CORRELATIONS = TwoCorrelationWindows()
     SPATIAL_CORRELATIONS = {
         'CPU': CPU_SPATIAL_CORRELATIONS, 'MEM': MEM_SPATIAL_CORRELATIONS}
-
-#%%
-CPU_SPATIAL_CORRELATIONS = TwoCorrelationWindows()
-MEM_SPATIAL_CORRELATIONS = TwoCorrelationWindows()
-SPATIAL_CORRELATIONS = {
-    'CPU': CPU_SPATIAL_CORRELATIONS, 'MEM': MEM_SPATIAL_CORRELATIONS}
-SPATIAL_CORRELATIONS
 
 #%% [markdown]
 # Calculate the spatial correlation between every possible pair of machines
@@ -273,9 +266,12 @@ def plot_corr_drift(time_windows):
             ax1.plot(base[:-1], np.cumsum(values1)//2, 'g-',
                      base[:-1], np.cumsum(values2)//2, 'y-',
                      base[:-1], np.cumsum(values)//2, 'r-',
-                     2*[np.average(corr1)], [0, 125*124//2//2], 'g--',
-                     2*[np.average(corr2)], [0, 125*124//2//2], 'y--',
-                     2*[np.average(corr)], [0, 125*124//2//2], 'r--')
+                     2*[np.average(corr1)],
+                     [0, SAMPLE_SIZE*(SAMPLE_SIZE-1)//2//2], 'g--',
+                     2*[np.average(corr2)],
+                     [0, SAMPLE_SIZE*(SAMPLE_SIZE-1)//2//2], 'y--',
+                     2*[np.average(corr)],
+                     [0, SAMPLE_SIZE*(SAMPLE_SIZE-1)//2//2], 'r--')
             plt.xticks([n/4 for n in range (-2, 4)])
             plt.title(data_type + ' Spatial Correlation Drift')
             i += 1
