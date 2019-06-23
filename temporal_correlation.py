@@ -41,7 +41,7 @@ for data_type in DATA:
 
 #%%
 try:
-    pickle_in = open("temporal_correlations.pickle","rb")
+    pickle_in = open(PICKLE_DIR+"temporal_correlations.pickle", "rb")
     TEMPORAL_CORRELATIONS = pickle.load(pickle_in)
 except FileNotFoundError:
     CPU_TEMPORAL_CORRELATIONS = np.full(
@@ -74,7 +74,11 @@ def ccf(x, y, no_lag=False):
         correlation = (
             np.correlate(y - np.mean(y), x - np.mean(x))
             if no_lag else ss.correlate(y - np.mean(y), x - np.mean(x)))
-        return correlation / (np.std(y) * np.std(x) * len(y))
+        n = NO_OF_TIMESTAMPS
+        return (
+            correlation / (np.std(y) * np.std(x) * len(y))
+            if no_lag else
+            n * correlation / (np.array([n - abs(n-i) for i in range(1, 2*n)])))
 
 #%% [markdown]
 # Calculate the temporal correlation of each time series with itself,
@@ -86,6 +90,9 @@ for i in range(SAMPLE_SIZE):
         TEMPORAL_CORRELATIONS[data_type][i] = ccf(
             SAMPLES[data_type][i],
             SAMPLES[data_type][i])
+pickle_out = open(PICKLE_DIR+"temporal_correlations.pickle", "wb")
+#pickle.dump(TEMPORAL_CORRELATIONS, pickle_out)
+pickle_out.close()
 
 #%% [markdown]
 # Have a look at the average temporal correlation for each time shift.
@@ -104,8 +111,8 @@ for data_type in TEMPORAL_CORRELATIONS:
 
     # One unit of time equals 5 minutes.
     time_window = (
-        zero_shift_timestamp - 4 * 5 // 5,
-        zero_shift_timestamp + 4 * 5 // 5)
+        zero_shift_timestamp - 12 * 5 // 5,
+        zero_shift_timestamp + 12 * 5 // 5 + 1)
     print(time_window)
     plt.plot(
         # One unit of time equals 5 minutes.
@@ -115,12 +122,12 @@ for data_type in TEMPORAL_CORRELATIONS:
         # zero time-shift
         2*[0], daily_vertical_range, '--',
         # +/- a few days
-        2*[1*5], daily_vertical_range, '--',
-        2*[-1*5], daily_vertical_range, '--',
-        2*[2*5], daily_vertical_range, '--',
-        2*[-2*5], daily_vertical_range, '--',
-        2*[3*5], daily_vertical_range, '--',
-        2*[-3*5], daily_vertical_range, '--')
+        2*[4*5], daily_vertical_range, '--',
+        2*[-4*5], daily_vertical_range, '--',
+        2*[8*5], daily_vertical_range, '--',
+        2*[-8*5], daily_vertical_range, '--',
+        2*[12*5], daily_vertical_range, '--',
+        2*[-12*5], daily_vertical_range, '--')
     plt.title(data_type + ' 5 minute Periodicity')
     plt.xlabel('Time-shift (Minutes)')
     plt.ylabel('Cross-correlation')
@@ -132,7 +139,7 @@ for data_type in TEMPORAL_CORRELATIONS:
     # One unit of time equals 5 minutes.
     time_window = (
         zero_shift_timestamp - 4 * DAYS_TO_MINUTES // 5,
-        zero_shift_timestamp + 4 * DAYS_TO_MINUTES // 5)
+        zero_shift_timestamp + 4 * DAYS_TO_MINUTES // 5 + 1)
     plt.plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
@@ -157,8 +164,8 @@ for data_type in TEMPORAL_CORRELATIONS:
     # One unit of time equals 5 minutes.
     time_window = (
         zero_shift_timestamp - 4 * 7 * DAYS_TO_MINUTES // 5,
-        zero_shift_timestamp + 4 * 7 * DAYS_TO_MINUTES // 5)
-    smoothed = ss.medfilt(avg_correlation, kernel_size=249)
+        zero_shift_timestamp + 4 * 7 * DAYS_TO_MINUTES // 5 + 1)
+    smoothed = ss.medfilt(avg_correlation, kernel_size=149)
     plt.plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp) / (7 * DAYS_TO_MINUTES)
@@ -181,11 +188,15 @@ for data_type in TEMPORAL_CORRELATIONS:
     plt.show()
 
 
+    time_window = (
+        zero_shift_timestamp,
+        zero_shift_timestamp + 10 * DAYS_TO_MINUTES // 5 + 1)
+    smoothed = ss.medfilt(avg_correlation, kernel_size=149)
     plt.plot(
         # One unit of time equals 5 minutes.
         [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
-         for x in range(len(avg_correlation))][zero_shift_timestamp:],
-        avg_correlation[zero_shift_timestamp:], '-',
+         for x in range(len(avg_correlation))][time_window[0]:time_window[1]],
+        avg_correlation[time_window[0]:time_window[1]], '-',
         # zero time-shift
         2*[0], daily_vertical_range, '--',
         # +/- a few days
@@ -245,5 +256,145 @@ for data_type in TEMPORAL_CORRELATIONS:
     plt.hist(daily_corr, bins=[n/10 for n in range(-10, 11)])
     plt.title(data_type + ' Temporal Correlations')
     plt.show()
+
+#------------------------------------------------------------------
+#%%
+def ccf(x, y, no_lag=False):
+    if np.std(y) * np.std(x) == 0:
+        return 0
+    else:
+        correlation = (
+            np.correlate(y - np.mean(y), x - np.mean(x))
+            if no_lag else ss.correlate(y - np.mean(y), x - np.mean(x)))
+        n = NO_OF_TIMESTAMPS
+        return (
+            correlation / (np.std(y) * np.std(x) * len(y))
+            if no_lag else
+            correlation / (np.std(y) * np.std(x) * (np.array([n - abs(n-i) for i in range(1, 2*n)]))))
+norm = {
+    'CPU': np.full((SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1), np.nan),
+    'MEM': np.full((SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1), np.nan)}
+for i in range(SAMPLE_SIZE):
+    for data_type in DATA_TYPES:
+        norm[data_type][i] = ccf(
+            SAMPLES[data_type][i],
+            SAMPLES[data_type][i])
+def ccf(x, y, no_lag=False):
+    if np.std(y) * np.std(x) == 0:
+        return 0
+    else:
+        correlation = (
+            np.correlate(y - np.mean(y), x - np.mean(x))
+            if no_lag else ss.correlate(y - np.mean(y), x - np.mean(x)))
+        n = NO_OF_TIMESTAMPS
+        return (
+            correlation / (np.std(y) * np.std(x) * len(y))
+            if no_lag else
+            n * correlation / (np.array([n - abs(n-i) for i in range(1, 2*n)])))
+no_effects = {
+    'CPU': np.full((SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1), np.nan),
+    'MEM': np.full((SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1), np.nan)}
+for i in range(SAMPLE_SIZE):
+    for data_type in DATA_TYPES:
+        no_effects[data_type][i] = ccf(
+            SAMPLES[data_type][i],
+            SAMPLES[data_type][i])
+def ccf(x, y, no_lag=False):
+    if np.std(y) * np.std(x) == 0:
+        return 0
+    else:
+        correlation = (
+            np.correlate(y - np.mean(y), x - np.mean(x))
+            if no_lag else ss.correlate(y - np.mean(y), x - np.mean(x)))
+        n = NO_OF_TIMESTAMPS
+        return (
+            correlation / (np.std(y) * np.std(x) * len(y))
+            if no_lag else
+            correlation)
+nothing = {
+    'CPU': np.full((SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1), np.nan),
+    'MEM': np.full((SAMPLE_SIZE, 2*NO_OF_TIMESTAMPS-1), np.nan)}
+for i in range(SAMPLE_SIZE):
+    for data_type in DATA_TYPES:
+        nothing[data_type][i] = ccf(
+            SAMPLES[data_type][i],
+            SAMPLES[data_type][i])
+
+#%%
+i = 1
+data_type = 'CPU'
+machine1 = SAMPLES[data_type][85]
+machine2 = SAMPLES[data_type][37]
+for signal in [machine1, machine2]:
+    plt.subplot(1, 2, i).plot([5*i/60 for i in range(2*24*60//5)], signal[:2*24*60//5])
+    plt.title('Machine ' + str((i+1)%2+1) +' '+ data_type + ' Usage')
+    plt.xlabel('Time (Hours)')
+    plt.ylabel('Usage')
+    i += 1
+plt.tight_layout()
+plt.show()
+TEMPORAL_CORRELATIONS = nothing
+signal1 = TEMPORAL_CORRELATIONS[data_type][85]
+signal2 = TEMPORAL_CORRELATIONS[data_type][37]
+
+i = 1
+for signal in [signal1, signal2]:
+    time_window = (
+        zero_shift_timestamp - 3 * 7 * DAYS_TO_MINUTES // 5,
+        zero_shift_timestamp + 3 * 7 * DAYS_TO_MINUTES // 5 + 1)
+    plt.subplot(2, 2, i).plot(
+        # One unit of time equals 5 minutes.
+        [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
+        for x in range(len(signal))][time_window[0]:time_window[1]],
+        signal[time_window[0]:time_window[1]], '-',
+        )
+    plt.title('Machine ' + str((i+1)%2+1) +' '+ data_type + ' Correlation')
+    plt.xlabel('Time-shift (Days)')
+    plt.ylabel('Auto-correlation')
+    i += 1
+plt.tight_layout()
+plt.show()
+TEMPORAL_CORRELATIONS = no_effects
+signal1 = TEMPORAL_CORRELATIONS[data_type][85]
+signal2 = TEMPORAL_CORRELATIONS[data_type][37]
+i = 1
+for signal in [signal1, signal2]:
+    time_window = (
+        zero_shift_timestamp - 3 * 7 * DAYS_TO_MINUTES // 5,
+        zero_shift_timestamp + 3 * 7 * DAYS_TO_MINUTES // 5 + 1)
+    plt.subplot(2, 2, i).plot(
+        # One unit of time equals 5 minutes.
+        [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
+        for x in range(len(signal))][time_window[0]:time_window[1]],
+        signal[time_window[0]:time_window[1]], '-',
+        )
+    plt.title('Machine ' + str((i+1)%2+1) +' '+ data_type + ' Correlation')
+    plt.xlabel('Time-shift (Days)')
+    plt.ylabel('Auto-correlation')
+    i += 1
+plt.tight_layout()
+plt.show()
+TEMPORAL_CORRELATIONS = norm
+signal1 = TEMPORAL_CORRELATIONS[data_type][85]
+signal2 = TEMPORAL_CORRELATIONS[data_type][37]
+i = 1
+for signal in [signal1, signal2]:
+    time_window = (
+        zero_shift_timestamp - 3 * 7 * DAYS_TO_MINUTES // 5,
+        zero_shift_timestamp + 3 * 7 * DAYS_TO_MINUTES // 5 + 1)
+    plt.subplot(2, 2, i).plot(
+        # One unit of time equals 5 minutes.
+        [5 * (x - zero_shift_timestamp) / DAYS_TO_MINUTES
+        for x in range(len(signal))][time_window[0]:time_window[1]],
+        signal[time_window[0]:time_window[1]], '-',
+        )
+    plt.title('Machine ' + str((i+1)%2+1) +' '+ data_type + ' Correlation')
+    plt.xlabel('Time-shift (Days)')
+    plt.ylabel('Auto-correlation')
+    i += 1
+
+plt.tight_layout()
+plt.show()
+
 
 #%%

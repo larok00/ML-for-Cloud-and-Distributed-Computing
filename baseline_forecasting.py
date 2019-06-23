@@ -51,15 +51,18 @@ def demo_basic_model(model_func):
     for data_type in SAMPLES:
         X = SAMPLES[data_type][0]
         # split into train and test sets
-        train_size = int(len(X) * 0.66)
-        train, test = X[:train_size], X[train_size:]
+        train_size = int(len(X) * 0.6)
+        test_size = int(len(X) * 0.2)
+        validation_size = int(len(X) * 0.2)
+        train, test = X[:train_size], X[train_size:train_size+test_size]
         train_X, train_y = train[:-1], train[1:]
         test_X, test_y = test[:-1], test[1:]
         predictions, test_score = model_func(test_X, test_y)
         # plot predictions and expected results
-        plt.plot(train_y)
-        plt.plot([None for i in train_y] + [x for x in test_y])
-        plt.plot([None for i in train_y] + [x for x in predictions])
+        plt.plot(train_y, label='Training')
+        plt.plot([None for i in train_y] + [x for x in test_y], label='Testing')
+        plt.plot([None for i in train_y] + [x for x in predictions], label='Predictions')
+        plt.legend()
         plt.show()
 
         results.append(test_score)
@@ -107,7 +110,7 @@ demo_basic_model(expanding_window)
 # ### Rolling Window
 
 #%%
-def rolling_window(test_X, test_y, w, scores):
+def rolling_window(test_X, test_y, w):
     # walk-forward validation
     history = [x for x in test_X]
     predictions = list()
@@ -119,7 +122,6 @@ def rolling_window(test_X, test_y, w, scores):
         history.append(test_y[i])
     # report performance
     rmse = sqrt(mean_squared_error(test_y, predictions))
-    scores.append(rmse)
     print('w=%d RMSE:%.3f' % (w, rmse))
     return predictions, rmse
 

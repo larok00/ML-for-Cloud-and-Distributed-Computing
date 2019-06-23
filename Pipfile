@@ -16,6 +16,9 @@ scipy = "*"
 pandas = "*"
 sklearn = "*"
 statsmodels = "*"
+keras = "*"
+tensorflow = "*"
+pydot = "*"
 
 [requires]
 python_version = "3.7"

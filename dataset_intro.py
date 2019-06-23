@@ -63,6 +63,7 @@ plt.subplot(211).plot(DATA['CPU'][0][:2*24*60//5])
 plt.title('CPU data')
 plt.subplot(212).plot(DATA['MEM'][0][:2*24*60//5])
 plt.title('MEM data')
+plt.tight_layout()
 plt.show()
 
 #%%
